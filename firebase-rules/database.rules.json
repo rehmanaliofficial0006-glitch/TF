@@ -1,0 +1,338 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "adminConfig": {
+      ".read": true,
+      ".write": "(auth != null && !root.child('adminConfig/adminUid').exists() && newData.child('adminUid').val() === auth.uid) || (auth != null && auth.uid === root.child('adminConfig/adminUid').val())"
+    },
+    "staff": {
+      ".read": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()",
+      ".write": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()"
+    },
+    "users": {
+      ".read": "(auth != null && auth.uid === root.child('adminConfig/adminUid').val()) || (auth != null && ((query.orderByChild === 'phoneNumber' && query.equalTo !== null) || (query.orderByChild === 'referralCode' && query.equalTo !== null) || (query.orderByChild === 'referredBy' && query.equalTo === auth.uid)))",
+      ".indexOn": [
+        "phoneNumber",
+        "referralCode",
+        "referredBy",
+        "customId",
+        "email",
+        "createdAt"
+      ],
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || (auth != null && auth.uid === root.child('adminConfig/adminUid').val()))",
+        ".write": "(auth != null && auth.uid === $uid && (newData.exists() || !data.exists())) || (auth != null && auth.uid === root.child('adminConfig/adminUid').val())",
+        ".validate": "(auth != null && auth.uid === root.child('adminConfig/adminUid').val()) || (newData.child('uid').val() === $uid && (!newData.child('isAdmin').exists() || newData.child('isAdmin').val() === false) && (!data.exists() || newData.child('createdAt').val() === data.child('createdAt').val()) && (!data.exists() || newData.child('moderation').val() === data.child('moderation').val()) && (!data.exists() || newData.child('referredBy').val() === data.child('referredBy').val()) && (!data.exists() || newData.child('totalMatches').val() === data.child('totalMatches').val()) && (!data.exists() || newData.child('wonMatches').val() === data.child('wonMatches').val()) && (!data.exists() || newData.child('winningCash').val() === data.child('winningCash').val()) && (!data.exists() || newData.child('totalEarnings').val() === data.child('totalEarnings').val()) && (!data.exists() || newData.child('referralEarnings').val() === data.child('referralEarnings').val()) && (!newData.child('balance').exists() || (newData.child('balance').isNumber() && newData.child('balance').val() >= 0)) && (data.exists() || (newData.child('balance').val() <= (root.child('settings/signupBonus').exists() ? root.child('settings/signupBonus').val() : 10) && newData.child('totalMatches').val() === 0 && newData.child('winningCash').val() === 0 && newData.child('referralEarnings').val() === 0)))"
+      }
+    },
+    "phoneIndex": {
+      "$key": {
+        ".read": "auth != null",
+        ".write": "(auth != null && !data.exists() && newData.val() === auth.uid) || (auth != null && auth.uid === root.child('adminConfig/adminUid').val())",
+        ".validate": "newData.isString() && newData.val().length <= 128"
+      }
+    },
+    "userBanks": {
+      ".read": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()",
+      ".write": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()",
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || (auth != null && auth.uid === root.child('adminConfig/adminUid').val()))",
+        ".write": "(auth != null && auth.uid === $uid) || (auth != null && auth.uid === root.child('adminConfig/adminUid').val())"
+      }
+    },
+    "transactions": {
+      ".read": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()",
+      ".write": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()",
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || (auth != null && auth.uid === root.child('adminConfig/adminUid').val()))",
+        ".indexOn": [
+          "timestamp"
+        ],
+        "$tid": {
+          ".write": "(auth != null && auth.uid === $uid && !data.exists() && newData.exists()) || (auth != null && auth.uid === root.child('adminConfig/adminUid').val())",
+          ".validate": "newData.hasChildren(['type','amount','timestamp']) && newData.child('type').isString() && newData.child('amount').isNumber()"
+        }
+      }
+    },
+    "deposits": {
+      ".read": "(auth != null && auth.uid === root.child('adminConfig/adminUid').val()) || (auth != null && query.orderByChild === 'userId' && query.equalTo === auth.uid)",
+      ".indexOn": [
+        "userId",
+        "status"
+      ],
+      "$id": {
+        ".read": "auth != null && (data.child('userId').val() === auth.uid || (auth != null && auth.uid === root.child('adminConfig/adminUid').val()))",
+        ".write": "(auth != null && auth.uid === root.child('adminConfig/adminUid').val()) || (auth != null && !data.exists() && newData.child('userId').val() === auth.uid && newData.child('status').val() === 'pending')",
+        ".validate": "(auth != null && auth.uid === root.child('adminConfig/adminUid').val()) || (newData.child('amount').isNumber() && newData.child('amount').val() > 0 && newData.child('amount').val() <= 1000000)"
+      }
+    },
+    "withdrawals": {
+      ".read": "(auth != null && auth.uid === root.child('adminConfig/adminUid').val()) || (auth != null && query.orderByChild === 'userId' && query.equalTo === auth.uid)",
+      ".indexOn": [
+        "userId",
+        "status"
+      ],
+      "$id": {
+        ".read": "auth != null && (data.child('userId').val() === auth.uid || (auth != null && auth.uid === root.child('adminConfig/adminUid').val()))",
+        ".write": "(auth != null && auth.uid === root.child('adminConfig/adminUid').val()) || (auth != null && !data.exists() && newData.child('userId').val() === auth.uid && newData.child('status').val() === 'pending')",
+        ".validate": "(auth != null && auth.uid === root.child('adminConfig/adminUid').val()) || (newData.child('amount').isNumber() && newData.child('amount').val() > 0 && newData.child('amount').val() <= 1000000)"
+      }
+    },
+    "ucOrders": {
+      ".read": "(auth != null && auth.uid === root.child('adminConfig/adminUid').val()) || (auth != null && query.orderByChild === 'userId' && query.equalTo === auth.uid)",
+      ".indexOn": [
+        "userId",
+        "status"
+      ],
+      "$id": {
+        ".read": "auth != null && (data.child('userId').val() === auth.uid || (auth != null && auth.uid === root.child('adminConfig/adminUid').val()))",
+        ".write": "(auth != null && auth.uid === root.child('adminConfig/adminUid').val()) || (auth != null && !data.exists() && newData.child('userId').val() === auth.uid && newData.child('status').val() === 'pending')",
+        ".validate": "(auth != null && auth.uid === root.child('adminConfig/adminUid').val()) || (newData.child('price').isNumber() && newData.child('price').val() > 0)"
+      }
+    },
+    "ucProducts": {
+      ".read": "auth != null",
+      ".write": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()"
+    },
+    "tournaments": {
+      ".read": "auth != null",
+      ".write": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()",
+      ".indexOn": [
+        "gameId",
+        "status"
+      ],
+      "$tId": {
+        "registeredPlayers": {
+          "$uid": {
+            ".write": "(auth != null && auth.uid === $uid && !data.exists() && newData.exists() && root.child('tournaments/'+$tId+'/status').val() === 'upcoming') || (auth != null && auth.uid === root.child('adminConfig/adminUid').val())",
+            ".validate": "(auth != null && auth.uid === root.child('adminConfig/adminUid').val()) || (newData.child('paidFee').isNumber() && newData.child('paidFee').val() >= 0)"
+          }
+        },
+        "slots": {
+          "$slot": {
+            ".write": "(auth != null && !data.exists() && newData.val() === auth.uid && root.child('tournaments/'+$tId+'/status').val() === 'upcoming') || (auth != null && auth.uid === root.child('adminConfig/adminUid').val())"
+          }
+        }
+      }
+    },
+    "chats": {
+      "$tid": {
+        ".read": "auth != null",
+        ".write": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()",
+        "$mid": {
+          ".write": "(auth != null && !data.exists() && newData.child('uid').val() === auth.uid) || (auth != null && auth.uid === root.child('adminConfig/adminUid').val())",
+          ".validate": "newData.hasChildren(['uid','message','timestamp']) && newData.child('message').isString() && newData.child('message').val().length <= 500"
+        }
+      }
+    },
+    "notifications": {
+      ".read": "auth != null",
+      ".write": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()"
+    },
+    "games": {
+      ".read": "auth != null",
+      ".write": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()"
+    },
+    "promotions": {
+      ".read": "auth != null",
+      ".write": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()"
+    },
+    "settings": {
+      ".read": true,
+      ".write": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()"
+    },
+    "maintenance": {
+      ".read": true,
+      ".write": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()"
+    },
+    "maintenanceLogs": {
+      ".read": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()",
+      ".write": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()"
+    },
+    "watchEarnSettings": {
+      ".read": "auth != null",
+      ".write": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()"
+    },
+    "watchEarnAds": {
+      ".read": "auth != null",
+      ".write": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()"
+    },
+    "watchEarnUserStats": {
+      ".read": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()",
+      ".write": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()",
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || (auth != null && auth.uid === root.child('adminConfig/adminUid').val()))"
+      }
+    },
+    "watchEarnHistory": {
+      ".read": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()",
+      ".write": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()",
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || (auth != null && auth.uid === root.child('adminConfig/adminUid').val()))",
+        ".indexOn": [
+          "timestamp"
+        ]
+      }
+    },
+    "watchEarnDailyLimits": {
+      ".read": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()",
+      ".write": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()",
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || (auth != null && auth.uid === root.child('adminConfig/adminUid').val()))"
+      }
+    },
+    "watchEarnTransactions": {
+      ".read": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()",
+      ".write": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()"
+    },
+    "watchEarnStats": {
+      ".read": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()",
+      ".write": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()"
+    },
+    "squads": {
+      ".read": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()",
+      ".write": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()",
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || (auth != null && auth.uid === root.child('adminConfig/adminUid').val()))",
+        ".write": "(auth != null && auth.uid === $uid) || (auth != null && auth.uid === root.child('adminConfig/adminUid').val())",
+        ".validate": "newData.hasChildren(['name','updatedAt']) && newData.child('name').isString() && newData.child('name').val().length <= 40"
+      }
+    },
+    "disputes": {
+      ".read": "(auth != null && auth.uid === root.child('adminConfig/adminUid').val()) || (auth != null && query.orderByChild === 'userId' && query.equalTo === auth.uid)",
+      ".indexOn": [
+        "userId",
+        "status"
+      ],
+      "$id": {
+        ".read": "auth != null && (data.child('userId').val() === auth.uid || (auth != null && auth.uid === root.child('adminConfig/adminUid').val()))",
+        ".write": "(auth != null && auth.uid === root.child('adminConfig/adminUid').val()) || (auth != null && newData.child('userId').val() === auth.uid && newData.child('status').val() === 'open' && (!data.exists() || data.child('status').val() === 'open'))",
+        ".validate": "(auth != null && auth.uid === root.child('adminConfig/adminUid').val()) || (newData.child('message').isString() && newData.child('message').val().length <= 500)"
+      }
+    },
+    "promoCodes": {
+      ".read": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()",
+      ".write": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()",
+      "$code": {
+        ".read": "auth != null",
+        "claimCount": {
+          ".write": "auth != null && newData.isNumber() && newData.val() >= 0 && ((!data.exists() && newData.val() === 1) || newData.val() === data.val() + 1 || newData.val() === data.val() - 1)"
+        }
+      }
+    },
+    "promoCodeClaims": {
+      ".read": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()",
+      ".write": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()",
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || (auth != null && auth.uid === root.child('adminConfig/adminUid').val()))",
+        "$code": {
+          ".write": "(auth != null && auth.uid === $uid && !data.exists() && newData.exists()) || (auth != null && auth.uid === root.child('adminConfig/adminUid').val())"
+        }
+      }
+    },
+    "pendingReferrals": {
+      ".read": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()",
+      ".write": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()",
+      "$id": {
+        ".write": "(auth != null && !data.exists() && newData.child('referredUid').val() === auth.uid && newData.child('status').val() === 'pending') || (auth != null && auth.uid === root.child('adminConfig/adminUid').val())"
+      }
+    },
+    "moderationCases": {
+      ".read": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()",
+      ".write": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()"
+    },
+    "moderationAppeals": {
+      ".read": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()",
+      ".write": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()",
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || (auth != null && auth.uid === root.child('adminConfig/adminUid').val()))",
+        ".write": "(auth != null && auth.uid === $uid && newData.child('status').val() === 'pending' && (!data.exists() || data.child('status').val() === 'pending')) || (auth != null && auth.uid === root.child('adminConfig/adminUid').val())",
+        ".validate": "(auth != null && auth.uid === root.child('adminConfig/adminUid').val()) || (newData.child('message').isString() && newData.child('message').val().length <= 500)"
+      }
+    },
+    "verificationRequests": {
+      ".read": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()",
+      ".write": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()",
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || (auth != null && auth.uid === root.child('adminConfig/adminUid').val()))",
+        ".write": "(auth != null && auth.uid === $uid && newData.child('uid').val() === auth.uid && newData.child('status').val() === 'pending' && data.child('status').val() !== 'approved') || (auth != null && auth.uid === root.child('adminConfig/adminUid').val())"
+      }
+    },
+    "supportTickets": {
+      ".read": "(auth != null && auth.uid === root.child('adminConfig/adminUid').val()) || (auth != null && query.orderByChild === 'userId' && query.equalTo === auth.uid)",
+      ".indexOn": [
+        "userId",
+        "status"
+      ],
+      "$tid": {
+        ".read": "auth != null && ((auth != null && auth.uid === root.child('adminConfig/adminUid').val()) || data.child('userId').val() === auth.uid)",
+        ".write": "auth != null && ((auth != null && auth.uid === root.child('adminConfig/adminUid').val()) || (!data.exists() && newData.child('userId').val() === auth.uid && newData.child('status').val() === 'open'))",
+        "messages": {
+          "$mid": {
+            ".write": "auth != null && !data.exists() && newData.child('sender').val() === 'user' && root.child('supportTickets/'+$tid+'/userId').val() === auth.uid",
+            ".validate": "newData.child('text').isString() && newData.child('text').val().length <= 500"
+          }
+        },
+        "lastMessageAt": {
+          ".write": "auth != null && data.parent().child('userId').val() === auth.uid"
+        },
+        "lastSender": {
+          ".write": "auth != null && data.parent().child('userId').val() === auth.uid"
+        },
+        "unreadAdmin": {
+          ".write": "auth != null && data.parent().child('userId').val() === auth.uid"
+        },
+        "unreadUser": {
+          ".write": "auth != null && data.parent().child('userId').val() === auth.uid"
+        },
+        "updatedAt": {
+          ".write": "auth != null && data.parent().child('userId').val() === auth.uid"
+        },
+        "status": {
+          ".write": "auth != null && data.parent().child('userId').val() === auth.uid && newData.val() === 'open'"
+        }
+      }
+    },
+    "supportNotes": {
+      ".read": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()",
+      ".write": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()"
+    },
+    "securityLogs": {
+      ".read": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()",
+      ".indexOn": [
+        "ts",
+        "type"
+      ],
+      "$id": {
+        ".write": "!data.exists() && ((auth != null && auth.uid === root.child('adminConfig/adminUid').val()) || (auth != null && newData.child('uid').val() === auth.uid) || newData.child('type').val() === 'failed_login')",
+        ".validate": "newData.hasChildren(['type','ts']) && newData.child('type').isString() && newData.child('type').val().length <= 40"
+      }
+    },
+    "securityDevices": {
+      ".read": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()",
+      "$uid": {
+        ".write": "auth != null && (auth.uid === $uid || (auth != null && auth.uid === root.child('adminConfig/adminUid').val()))"
+      }
+    },
+    "securityConfig": {
+      ".read": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()",
+      ".write": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()"
+    },
+    "fraudReviews": {
+      ".read": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()",
+      ".write": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()"
+    },
+    "auditLogs": {
+      ".read": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()",
+      ".write": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()",
+      ".indexOn": [
+        "ts"
+      ]
+    },
+    "bugFinderTests": {
+      ".read": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()",
+      ".write": "auth != null && auth.uid === root.child('adminConfig/adminUid').val()"
+    }
+  }
+}

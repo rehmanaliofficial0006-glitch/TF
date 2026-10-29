@@ -1,0 +1,16 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Default: deny everything.
+    match /{allPaths=**} { allow read, write: if false; }
+
+    // Admin-managed assets (e.g. background music). Public read, admin-only write/delete.
+    // Storage rules cannot read the Realtime DB, so replace the e-mail below with the admin's login e-mail.
+    match /{folder}/{file=**} {
+      allow read: if true;
+      allow write, delete: if request.auth != null
+        && request.auth.token.email == 'REPLACE_WITH_ADMIN_EMAIL'
+        && (request.method == 'delete' || request.resource.size < 15 * 1024 * 1024);
+    }
+  }
+}
