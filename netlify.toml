@@ -1,6 +1,11 @@
 [build]
   publish = "public"
 
+# Firebase web clients require the database URL publicly. Exempt only this
+# non-secret value; keep scanning service-account credentials and other secrets.
+[build.environment]
+  SECRETS_SCAN_OMIT_KEYS = "FIREBASE_DB_URL"
+
 [functions]
   directory = "netlify/functions"
 
