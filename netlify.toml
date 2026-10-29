@@ -1,6 +1,11 @@
 [build]
   publish = "public"
 
+# Firebase database URLs are public browser configuration, not credentials.
+# Continue scanning all other values, including service-account emails and private keys.
+[build.environment]
+  SECRETS_SCAN_OMIT_KEYS = "FIREBASE_DB_URL"
+
 [functions]
   directory = "netlify/functions"
 
