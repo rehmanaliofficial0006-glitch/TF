@@ -1,0 +1,7 @@
+{
+  "outputDirectory": "public",
+  "functions": {
+    "api/bugfix.js": { "maxDuration": 60 },
+    "api/watchearn.js": { "maxDuration": 30 }
+  }
+}

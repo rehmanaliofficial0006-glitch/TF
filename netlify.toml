@@ -1,0 +1,11 @@
+[build]
+  publish = "public"
+
+[functions]
+  directory = "netlify/functions"
+
+# /api/bugfix (admin Bug Finder) -> Netlify function
+[[redirects]]
+  from = "/api/bugfix"
+  to = "/.netlify/functions/bugfix"
+  status = 200
