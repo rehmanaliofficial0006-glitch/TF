@@ -4,7 +4,7 @@
 // Rewards are credited ONLY here; the browser never writes balances.
 const crypto = require('crypto');
 
-const DB = (process.env.FIREBASE_DB_URL || 'https://fftournament-4b000-default-rtdb.asia-southeast1.firebasedatabase.app').replace(/\/$/, '');
+const DB = (process.env.FIREBASE_DB_URL || '').replace(/\/$/, '');
 const API_KEY = process.env.FIREBASE_API_KEY || 'AIzaSyBppZ6uC1wpoSiwtfQt8Yh7rkUUfM7jZu8'; // public web key
 
 class Fail extends Error { constructor(status, code, reason, extra) { super(reason); this.status = status; this.code = code; this.reason = reason; this.extra = extra || {}; } }
@@ -175,6 +175,9 @@ exports.handler = async (event) => {
     if (event.httpMethod !== 'POST') return out(405, { ok: false, error: { code: 'failed-precondition', reason: 'POST_ONLY' } });
     const m = /^Bearer (.+)$/.exec((event.headers && (event.headers.authorization || event.headers.Authorization)) || '');
     if (!m) return out(401, { ok: false, error: { code: 'unauthenticated', reason: 'UNAUTHENTICATED' } });
+    if (!DB || !process.env.FIREBASE_CLIENT_EMAIL || !process.env.FIREBASE_PRIVATE_KEY) {
+      return out(500, { ok: false, error: { code: 'internal', reason: 'SERVER_NOT_CONFIGURED' } });
+    }
     const uid = await verifyUser(m[1]);
     if (!uid) return out(401, { ok: false, error: { code: 'unauthenticated', reason: 'UNAUTHENTICATED' } });
     const body = JSON.parse(event.body || '{}');

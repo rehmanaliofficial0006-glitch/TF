@@ -1,11 +1,11 @@
 // Vercel serverless function: AI bug-fix proposals for the admin "Bug Finder".
-// The Anthropic key lives ONLY here (Vercel env var ANTHROPIC_API_KEY) — never in admin.html.
+// Netlify AI Gateway supplies provider credentials at runtime; never expose them in HTML.
 // Only the designated admin (Firebase ID token + adminConfig/adminUid) can call it.
 // It never edits files itself: it returns small, reviewable edits that the admin panel validates,
 // syntax-checks and lets the admin download.
 
 const FIREBASE_API_KEY = process.env.FIREBASE_API_KEY || 'AIzaSyBppZ6uC1wpoSiwtfQt8Yh7rkUUfM7jZu8'; // public web key
-const DB_URL = (process.env.FIREBASE_DB_URL || 'https://fftournament-4b000-default-rtdb.asia-southeast1.firebasedatabase.app').replace(/\/$/, '');
+const DB_URL = (process.env.FIREBASE_DB_URL || '').replace(/\/$/, '');
 const MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-5-5';
 
 const hits = new Map(); // best-effort per-instance rate limit
@@ -58,9 +58,9 @@ module.exports = async (req, res) => {
   try {
     const origin = req.headers.origin;
     if (origin && new URL(origin).host !== req.headers.host) return send(403, { error: 'Cross-origin request blocked' });
-    if (!process.env.ANTHROPIC_API_KEY) return send(500, { error: 'ANTHROPIC_API_KEY is not set in Vercel → Settings → Environment Variables (then redeploy)' });
     const m = /^Bearer (.+)$/.exec(req.headers.authorization || '');
     if (!m) return send(401, { error: 'Missing token' });
+    if (!DB_URL) return send(500, { error: 'FIREBASE_DB_URL is not configured' });
     const uid = await verifyAdmin(m[1]);
     if (!uid) return send(403, { error: 'Admin only' });
     if (limited(uid)) return send(429, { error: 'Too many requests — wait a few seconds' });
@@ -73,17 +73,17 @@ module.exports = async (req, res) => {
     const code = snippets.slice(0, 20).map((s, i) => { const t = String(s || '').slice(0, 6000); total += t.length; return total > 60000 ? '' : `--- snippet ${i + 1} (${file}) ---\n${t}`; }).filter(Boolean).join('\n\n');
     const rep = ['id', 'name', 'severity', 'panel', 'area', 'details', 'cause', 'fix', 'repro'].map(k => `${k}: ${String(bug[k] == null ? '' : bug[k]).slice(0, 800)}`).join('\n');
 
-    const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 55000);
-    let r;
+    let j;
     try {
-      r = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST', signal: ctl.signal,
-        headers: { 'content-type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
-        body: JSON.stringify({ model: MODEL, max_tokens: 4000, system: SYSTEM, messages: [{ role: 'user', content: `BUG REPORT\n${rep}\n\nFILE: ${file}\n\nCODE\n${code}` }] })
-      });
-    } finally { clearTimeout(to); }
-    if (!r.ok) { const t = await r.text(); return send(502, { error: 'AI provider error ' + r.status + ': ' + t.slice(0, 200) }); }
-    const j = await r.json();
+      const { default: Anthropic } = await import('@anthropic-ai/sdk');
+      const anthropic = new Anthropic();
+      j = await anthropic.messages.create({
+        model: MODEL, max_tokens: 4000, system: SYSTEM,
+        messages: [{ role: 'user', content: `BUG REPORT\n${rep}\n\nFILE: ${file}\n\nCODE\n${code}` }]
+      }, { timeout: 55000, maxRetries: 0 });
+    } catch (e) {
+      return send(502, { error: 'AI provider request failed' });
+    }
     const text = (j.content || []).filter(c => c.type === 'text').map(c => c.text).join('');
     let out;
     try { out = pickJson(text); } catch (e) { return send(502, { error: 'AI returned an unreadable answer' }); }
@@ -92,6 +92,6 @@ module.exports = async (req, res) => {
       .map(e => ({ file: e.file, old_str: e.old_str, new_str: e.new_str }));
     return send(200, { summary: String(out.summary || '').slice(0, 300), edits, cannot_fix: out.cannot_fix ? String(out.cannot_fix).slice(0, 300) : null, model: MODEL });
   } catch (e) {
-    return send(500, { error: 'Server error: ' + String(e && e.message || e).slice(0, 200) });
+    return send(500, { error: 'Server error' });
   }
 };
